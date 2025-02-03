@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 
 function App() {
-  const baseurl = "https://bit-stock-api.vercel.app";
+  const baseurl = "http://localhost:8080";
   const [companies, setCompanies] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [newCompanyName, setNewCompanyName] = useState("");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+
   const [isCreating, setIsCreating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -47,10 +49,17 @@ function App() {
     setIsCreating(!company);
   };
 
+  const openDeleteModal = (company) => {
+    setSelectedCompany(company);
+    setDeleteModalOpen(true);
+  };
+
   const closeModal = () => {
     setModalOpen(false);
     setSelectedCompany(null);
     setNewCompanyName("");
+    setDeleteModalOpen(false);
+
     setIsCreating(false);
   };
 
@@ -115,6 +124,35 @@ function App() {
     }
   };
 
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${baseurl}/companies/${selectedCompany.id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        console.log(response);
+        
+        throw new Error("Failed to delete company");
+      }
+
+      setCompanies(
+        companies.filter((company) => company.id !== selectedCompany.id)
+      );
+      setMessage("Company deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting company:", error);
+      setMessage("Failed to delete company. Please try again.");
+    } finally {
+      setLoading(false);
+      closeModal();
+    }
+  };
+
   return (
     <div style={containerStyle}>
       {message && <div style={messageStyle}>{message}</div>}
@@ -128,7 +166,7 @@ function App() {
       {loading && <div style={loadingStyle}>Loading...</div>}
       <table style={tableStyle}>
         <thead>
-          <tr style={{ backgroundColor: "#f2f2f2" }}>
+          <tr style={{ backgroundColor: "#f2f2f2", display:"flex", justifyContent:"space-between" }}>
             <th style={tableHeaderStyle}>Company Name</th>
             <th style={tableHeaderStyle}>Pay Status</th>
             <th style={tableHeaderStyle}>Action</th>
@@ -136,7 +174,7 @@ function App() {
         </thead>
         <tbody>
           {companies.map((company) => (
-            <tr key={company.id} style={{ borderBottom: "1px solid #ddd" }}>
+            <tr key={company.id} style={{ borderBottom: "1px solid #ddd", display:"flex", justifyContent:"space-between" }}>
               <td style={tableCellStyle}>{company.name}</td>
               <td style={tableCellStyle}>
                 {company.isPaid ? "Paid" : "Unpaid"}
@@ -152,6 +190,18 @@ function App() {
                   disabled={loading}
                 >
                   {company.isPaid ? "Block" : "Unblock"}
+                </button>
+                <button
+                  onClick={() => openDeleteModal(company)}
+                  style={{
+                    ...buttonStyle,
+                    backgroundColor: "#d9534f",
+                    color: "white",
+                    marginLeft: "10px",
+                  }}
+                  disabled={loading}
+                >
+                  Delete
                 </button>
               </td>
             </tr>
@@ -212,6 +262,31 @@ function App() {
           </div>
         </div>
       )}
+
+      {deleteModalOpen && (
+        <div style={modalOverlayStyle}>
+          <div style={modalStyle}>
+            <h2>Confirm Delete</h2>
+            <p>Are you sure you want to delete {selectedCompany?.name}?</p>
+            <div style={modalButtonContainerStyle}>
+              <button
+                onClick={closeModal}
+                style={cancelButtonStyle}
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                style={deleteButtonStyle}
+                disabled={loading}
+              >
+                {loading ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -239,7 +314,19 @@ const tableHeaderStyle = {
 const tableCellStyle = {
   padding: "12px",
   textAlign: "left",
+  gap:"20px",
+  display:"flex",
+  flexDirection:"column",
+  
 };
+
+const modalButtonContainerStyle = {
+  display: "flex",
+  justifyContent: "flex-end",
+  marginTop: "20px",
+  gap:"20px"
+};
+
 
 const buttonStyle = {
   padding: "8px 12px",
@@ -247,6 +334,11 @@ const buttonStyle = {
   borderRadius: "4px",
   cursor: "pointer",
 };
+
+const cancelButtonStyle = { ...buttonStyle, backgroundColor: "#ccc" };
+const deleteButtonStyle = { ...buttonStyle, backgroundColor: "#d9534f" };
+const confirmButtonStyle = { ...buttonStyle, backgroundColor: "#4CAF50" };
+
 
 const modalOverlayStyle = {
   position: "fixed",
@@ -264,7 +356,7 @@ const modalStyle = {
   backgroundColor: "white",
   padding: "20px",
   borderRadius: "8px",
-  maxWidth: "400px",
+  maxWidth: "250px",
   width: "100%",
 };
 
