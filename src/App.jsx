@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 function App() {
-  const baseurl = "http://localhost:8080";
+  const baseurl = "http://bit-stock-api.vercel.app";
   const [companies, setCompanies] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState(null);
